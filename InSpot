@@ -1,0 +1,135 @@
+#include "LiquidCrystal.h"
+
+LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
+
+const char* buildings[] = {"Mercer", "Fenwick", "Innov"};
+const int numBuildings = sizeof(buildings) / sizeof(buildings[0]);
+
+const char* rooms[][14] = {
+
+  {"104C", "104D", "104E", "104F"},
+
+  {"1609", "1707", "2603", "2610", "2611", "2612", "3606", "3608", "3609", "3610", "3611", "3702", "3706", "3708"},
+
+  {"301A", "301B", "301C", "301D", "301E"}
+};
+
+bool roomAvailability[][14] = {
+
+  {true, false, true, true, false, false, false, false, false, false, false, false, false, false},
+
+  {false, true, true, false, true, false, true, true, false, true, false, true, true, false},
+
+  {true, false, true, true, true, false, false, false, false, false, false, false, false, false}
+};
+
+int numRooms[] = {4, 14, 5};
+
+int currentBuilding = 0;
+int currentRoom = 0;
+int stage = 0; 
+
+void setup() {
+  lcd.begin(16, 2);
+  lcd.setCursor(0, 0);
+  lcd.print("  InSpot  ");
+  lcd.setCursor(0, 1);
+  lcd.print("Select Bldg:");
+}
+
+void loop() {
+  int x = analogRead(0);
+
+  if (x < 60) {
+    handleRightButton();
+  } else if (x < 200) {  
+    handleResetButton();
+  } else if (x < 600) {  
+    handleLeftButton();
+  } else if (x < 800) {  
+    handleSelectButton();
+  }
+}
+
+void handleRightButton() {
+  if (stage == 0) {
+
+    currentBuilding = (currentBuilding + 1) % numBuildings;
+    showBuildingInfo();
+  } else if (stage == 1) {
+
+    currentRoom = (currentRoom + 1) % numRooms[currentBuilding];
+    showRoomInfo();
+  }
+}
+
+void handleResetButton() {
+
+  currentBuilding = 0;
+  currentRoom = 0;
+  stage = 0;
+  lcd.setCursor(0, 0);
+  lcd.print("  InSpot  ");
+  lcd.setCursor(0, 1);
+  lcd.print("Select Bldg:");
+}
+
+void handleLeftButton() {
+  if (stage == 2) {
+
+    stage = 1;
+    showRoomInfo();
+  } else if (stage == 1) {
+
+    stage = 0;
+    currentRoom = 0; 
+    lcd.setCursor(0, 1);
+    lcd.print("Select Bldg:        ");
+  }
+}
+
+void handleSelectButton() {
+  if (stage == 0) {
+
+    stage = 1;
+    showRoomInfo();
+  } else if (stage == 1) {
+
+    if (roomAvailability[currentBuilding][currentRoom]) {
+      stage = 2;
+      showReservationConfirmation();
+    } else {
+
+      lcd.setCursor(0, 1);
+      lcd.print("No - Reserved      ");
+      delay(1000); 
+      showRoomInfo();
+    }
+  } else if (stage == 2) {
+
+    roomAvailability[currentBuilding][currentRoom] = false;
+    lcd.setCursor(0, 1);
+    lcd.print("Room Reserved!     ");
+    delay(1000); 
+    stage = 1; 
+    showRoomInfo();
+  }
+}
+
+void showBuildingInfo() {
+  lcd.setCursor(0, 1);
+  lcd.print(buildings[currentBuilding]);
+  lcd.print(" Bldg          ");
+}
+
+void showRoomInfo() {
+  lcd.setCursor(0, 1);
+  lcd.print("Room ");
+  lcd.print(rooms[currentBuilding][currentRoom]);
+  lcd.print(roomAvailability[currentBuilding][currentRoom] ? " Avail  " : "Reservd ");
+}
+
+void showReservationConfirmation() {
+  lcd.setCursor(0, 1);
+  lcd.print("Reserve Room?      ");
+}
